@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>619</width>
+    <height>339</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>0</height>
+    </size>
+   </property>
+   <property name="maximumSize">
+    <size>
+     <width>16777215</width>
+     <height>16777215</height>
+    </size>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="VulkanLayout">
+      <property name="spacing">
+       <number>6</number>
+      </property>
+      <property name="leftMargin">
+       <number>25</number>
+      </property>
+      <property name="topMargin">
+       <number>25</number>
+      </property>
+      <property name="rightMargin">
+       <number>25</number>
+      </property>
+      <property name="bottomMargin">
+       <number>25</number>
+      </property>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>619</width>
+     <height>17</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="action_Open"/>
+    <addaction name="action_Quit"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit">
+    <property name="title">
+     <string>&amp;Edit</string>
+    </property>
+    <addaction name="actionSomething"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionToogle_Console_Log"/>
+   </widget>
+   <widget class="QMenu" name="menuAdd_File">
+    <property name="title">
+     <string>File System</string>
+    </property>
+    <addaction name="actionAdd_FIle"/>
+    <addaction name="actionDelete_File"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit"/>
+   <addaction name="menuView"/>
+   <addaction name="menuAdd_File"/>
+  </widget>
+  <widget class="QToolBar" name="toolBar">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <property name="minimumSize">
+    <size>
+     <width>0</width>
+     <height>25</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionShow_Grid"/>
+   <addaction name="actionPlay"/>
+   <addaction name="actionStopPlay"/>
+   <addaction name="actionPlaySound"/>
+  </widget>
+  <widget class="QDockWidget" name="ConsoleDock">
+   <property name="windowTitle">
+    <string>Console log</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>8</number>
+   </attribute>
+   <widget class="QWidget" name="ConsoleDockContents">
+    <property name="minimumSize">
+     <size>
+      <width>0</width>
+      <height>150</height>
+     </size>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tab_3">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Tab 1</string>
+        </attribute>
+        <widget class="QTextEdit" name="consoleOutput">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>9</y>
+           <width>621</width>
+           <height>81</height>
+          </rect>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="tab_4">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <attribute name="title">
+         <string>Tab 2</string>
+        </attribute>
+        <widget class="QTableWidget" name="tableWidget_filesData">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>1</y>
+           <width>591</width>
+           <height>201</height>
+          </rect>
+         </property>
+         <property name="editTriggers">
+          <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+         </property>
+         <column>
+          <property name="text">
+           <string>File Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>File Path</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>File Size</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Image</string>
+          </property>
+         </column>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="tab">
+        <attribute name="title">
+         <string>Page</string>
+        </attribute>
+        <widget class="QWidget" name="gridLayoutWidget">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>591</width>
+           <height>101</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="grid_filesData"/>
+        </widget>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="InspectorDock">
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="InspectorDockContents">
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QTreeWidget" name="InspectorTree">
+       <column>
+        <property name="text">
+         <string notr="true">1</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="EntitiesDock">
+   <property name="minimumSize">
+    <size>
+     <width>100</width>
+     <height>114</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Entities</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="EntitiesDockContents">
+    <property name="minimumSize">
+     <size>
+      <width>100</width>
+      <height>0</height>
+     </size>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QListWidget" name="EntitiesList">
+       <property name="isWrapping" stdset="0">
+        <bool>false</bool>
+       </property>
+       <property name="uniformItemSizes">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="action_Open">
+   <property name="text">
+    <string>&amp;Open</string>
+   </property>
+   <property name="toolTip">
+    <string>Open scene</string>
+   </property>
+  </action>
+  <action name="action_Quit">
+   <property name="text">
+    <string>&amp;Quit</string>
+   </property>
+   <property name="toolTip">
+    <string>Quit the application</string>
+   </property>
+  </action>
+  <action name="actionSomething">
+   <property name="text">
+    <string>Something</string>
+   </property>
+  </action>
+  <action name="actionShow_Grid">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show Grid</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionToogle_Console_Log">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Toogle Console Log</string>
+   </property>
+  </action>
+  <action name="actionPlay">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::MediaPlaybackStart"/>
+   </property>
+   <property name="text">
+    <string>Play</string>
+   </property>
+   <property name="toolTip">
+    <string>Start testing application</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionStopPlay">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::MediaPlaybackStop"/>
+   </property>
+   <property name="text">
+    <string>StopPlay</string>
+   </property>
+   <property name="toolTip">
+    <string>Stop testing of application</string>
+   </property>
+   <property name="shortcut">
+    <string>Esc</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionPlaySound">
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::AudioVolumeHigh"/>
+   </property>
+   <property name="text">
+    <string>PlaySound</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionAdd_FIle">
+   <property name="text">
+    <string>Add File</string>
+   </property>
+  </action>
+  <action name="actionDelete_File">
+   <property name="text">
+    <string>Delete File</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

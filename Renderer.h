@@ -112,7 +112,6 @@ private:
     bool framebufferResized = false;
 
     // ---- Functions ----
-
     void cleanupSwapChain();
     void cleanup();
     void recreateSwapChain();

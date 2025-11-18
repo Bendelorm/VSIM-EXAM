@@ -45,6 +45,7 @@ add_executable(QtVulkan
     Systems/CameraSystem.h Systems/CameraSystem.cpp
     Systems/RenderSystem.h Systems/RenderSystem.cpp
     TransformManager.h TransformManager.cpp
+    TxtToObj.h TxtToObj.cpp
 )
 
 # OpenAL / Sound

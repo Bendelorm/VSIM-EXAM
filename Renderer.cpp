@@ -630,7 +630,7 @@ void Renderer::createGraphicsPipeline() {
     //How the vertices are assembed into primitives
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     //3. Viewport & Scissor
@@ -1146,7 +1146,8 @@ void Renderer::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width,
 }
 void Renderer::loadEntities()
 {
-    if(gea::EngineInit::registry.Meshes.empty()) {
+    if(gea::EngineInit::registry.Meshes.empty())
+    {
         qDebug("Mesh container is empty!");
         return;
     }
@@ -1156,7 +1157,8 @@ void Renderer::loadEntities()
     {
         // Check if this entity also has a texture
         auto textureIt = gea::EngineInit::registry.Textures.find(entityID);
-        if(textureIt == gea::EngineInit::registry.Textures.end()) {
+        if(textureIt == gea::EngineInit::registry.Textures.end())
+        {
             qDebug("Entity %d has mesh but no texture, skipping", entityID);
             continue;
         }
@@ -1164,7 +1166,8 @@ void Renderer::loadEntities()
         const std::string &meshPath = meshComponent.path;
         const std::string &texturePath = textureIt->second.path;
 
-        if(meshPath.empty() || texturePath.empty()) {
+        if(meshPath.empty() || texturePath.empty())
+        {
             qDebug("Entity %d has empty path, skipping", entityID);
             continue;
         }
@@ -1202,30 +1205,41 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
+    {
         throw std::runtime_error(warn + err);
+    }
+
+    for (size_t i = 0; i < shapes.size(); i++)
+    {
+        qDebug("Shape %zu: %zu indices", i, shapes[i].mesh.indices.size());
     }
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
-    for (const auto& shape : shapes) {
-        for (const auto& index : shape.mesh.indices) {
+    for (const auto& shape : shapes)
+    {
+        for (const auto& index : shape.mesh.indices)
+        {
             Vertex vertex{};
 
-            vertex.pos = {
+            vertex.pos =
+            {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vertex.texCoord = {
+            vertex.texCoord =
+            {
                 attrib.texcoords[2 * index.texcoord_index + 0],
                 1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
             };
 
             vertex.color = {1.0f, 1.0f, 1.0f};
 
-            if (uniqueVertices.count(vertex) == 0) {
+            if (uniqueVertices.count(vertex) == 0)
+            {
                 uniqueVertices[vertex] = static_cast<uint32_t>(entityData.vertices.size());
                 entityData.vertices.push_back(vertex);
             }
@@ -1233,7 +1247,10 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
             entityData.indices.push_back(uniqueVertices[vertex]);
         }
     }
+
+    qDebug("Final vertices: %zu, indices: %zu", entityData.vertices.size(), entityData.indices.size());
 }
+
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
 

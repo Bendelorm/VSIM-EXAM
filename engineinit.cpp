@@ -1,5 +1,6 @@
 #include "engineinit.h"
 #include <QRegularExpression>
+#include "TxtToObj.h"
 
 namespace gea
 {
@@ -107,6 +108,17 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     texture2.path = "../../Assets/Textures/texture.jpg";
 
 
+    //CREATING POINT CLOUD
+    gea::Entity PointCloud = entityManager.createEntity();
+    gea::Transform transform3;
+    transform3.mPosition = glm::vec3(0,0,0);
+    transform3.name = "PointCloud";
+    gea::Mesh mesh3;
+    mesh3.path = "../../las/lasdatafull2_downsampled.obj";
+    gea::Texture texture3;
+    texture3.path = "../../Assets/Textures/texture.jpg";
+
+
     //connect components to mesh
     registry.addComponent(RoomOne.mEntityID, transform1);
     registry.addComponent(RoomOne.mEntityID, mesh1);
@@ -115,6 +127,12 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(RoomTwo.mEntityID, transform2);
     registry.addComponent(RoomTwo.mEntityID, mesh2);
     registry.addComponent(RoomTwo.mEntityID, texture2);
+
+    registry.addComponent(PointCloud.mEntityID, transform3);
+    registry.addComponent(PointCloud.mEntityID, mesh3);
+    registry.addComponent(PointCloud.mEntityID, texture3);
+
+    //TxtToObj::convertTxtToObj("../../las/lasdata2_downsampled.txt", "../../las/lasdatafull2_downsampled.obj" );
 
 
 

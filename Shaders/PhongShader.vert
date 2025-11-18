@@ -27,6 +27,7 @@ layout(location = 4) out vec3 outViewPos;
 void main()
 {
     mat4 model = instanceBuffer.model[gl_InstanceIndex];
+    gl_PointSize = 5;
 
     // Transform to world space
     vec4 worldPos = model * vec4(aPos, 1.0);

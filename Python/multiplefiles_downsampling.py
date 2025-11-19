@@ -2,15 +2,22 @@ import laspy
 
 # List of input files
 input_files = [
-    'las2/test1.laz',
-    'las2/test2.laz',
-    'las2/test3.laz',
-    'las2/test4.laz',
-    'las2/test5.laz',
-    'las2/test6.laz'
-]
-output_file = 'las2/lasdata2.txt'
+    'las3/test1.laz',
+    'las3/test2.laz',
+    'las3/test3.laz',
+    'las3/test4.laz',
+    'las3/test5.laz',
+    'las3/test6.laz',
+    'las3/test7.laz',
+    'las3/test8.laz',
+    'las3/test9.laz',
+    'las3/test10.laz',
+    'las3/test11.laz',
+    'las3/test12.laz'
 
+]
+output_file = 'las3/lasdata3_downsample10.txt'
+	
 # Downsample factor (10 = keep 10%, 20 = keep 5%, etc.)
 downsample_factor = 10
 

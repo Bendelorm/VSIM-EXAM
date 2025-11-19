@@ -11,6 +11,8 @@
 #include "registry.h"
 #include "macros.h"
 #include "Systems/inputsystem.h"
+#include "TxtToObj.h"
+
 namespace gea
 {
 

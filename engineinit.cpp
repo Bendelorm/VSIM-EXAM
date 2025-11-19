@@ -85,6 +85,24 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     QLog(mat4ToQString(cam1.mProjectionMatrix),"blue");
     QLog(&" " [ cam1.isActive],"blue");
 
+    //TxtToObj::convertTxtToObj("../../las/lasdata2_downsample1000.txt", "../../las/lasdatafull2_downsample1000_triangles.obj" );
+    //TxtToObj converter;
+    //if (converter.loadPointsFromTxt("../../las/lasdata3_downsample10.txt", 1))
+    //{
+    //    converter.createRegularGrid(5.0);
+    //    converter.generateTriangulation();
+    //    converter.calculateNormals();
+    //    converter.generateUVCoordinates();
+    //
+    //    if (!converter.exportToOBJ("../../las/lasdatafull3_downsample10.obj"))
+    //    {
+    //        qDebug() << "Failed to export mesh!";
+    //    }
+    //}
+    //else
+    //{
+    //    qDebug() << "Failed to load point cloud!";
+    //}
 
     //Transform/mesh/texture entities
     gea::Entity RoomOne = entityManager.createEntity();
@@ -114,25 +132,27 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     transform3.mPosition = glm::vec3(0,0,0);
     transform3.name = "PointCloud";
     gea::Mesh mesh3;
-    mesh3.path = "../../las/lasdatafull2_downsampled.obj";
+    mesh3.path = "../../las/lasdatafull3_downsample10.obj";
     gea::Texture texture3;
     texture3.path = "../../Assets/Textures/texture.jpg";
 
 
     //connect components to mesh
-    registry.addComponent(RoomOne.mEntityID, transform1);
-    registry.addComponent(RoomOne.mEntityID, mesh1);
-    registry.addComponent(RoomOne.mEntityID, texture1);
-
-    registry.addComponent(RoomTwo.mEntityID, transform2);
-    registry.addComponent(RoomTwo.mEntityID, mesh2);
-    registry.addComponent(RoomTwo.mEntityID, texture2);
+    //registry.addComponent(RoomOne.mEntityID, transform1);
+    //registry.addComponent(RoomOne.mEntityID, mesh1);
+    //registry.addComponent(RoomOne.mEntityID, texture1);
+    //
+    //registry.addComponent(RoomTwo.mEntityID, transform2);
+    //registry.addComponent(RoomTwo.mEntityID, mesh2);
+    //registry.addComponent(RoomTwo.mEntityID, texture2);
 
     registry.addComponent(PointCloud.mEntityID, transform3);
     registry.addComponent(PointCloud.mEntityID, mesh3);
     registry.addComponent(PointCloud.mEntityID, texture3);
 
-    //TxtToObj::convertTxtToObj("../../las/lasdata2_downsampled.txt", "../../las/lasdatafull2_downsampled.obj" );
+    gea::TransformManager::setRotation(PointCloud.mEntityID, glm::vec3(-90, 0, 0));
+    gea::TransformManager::setScale(PointCloud.mEntityID, glm::vec3(0.1, 0.1, 0.1));
+
 
 
 

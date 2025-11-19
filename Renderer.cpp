@@ -619,7 +619,7 @@ void Renderer::createGraphicsPipeline() {
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = Vertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -630,7 +630,7 @@ void Renderer::createGraphicsPipeline() {
     //How the vertices are assembed into primitives
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     //3. Viewport & Scissor
@@ -1205,41 +1205,56 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
-    {
+    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
         throw std::runtime_error(warn + err);
     }
 
-    for (size_t i = 0; i < shapes.size(); i++)
-    {
+    qDebug("=== Loading: %s ===", path.c_str());
+    qDebug("Vertices: %zu", attrib.vertices.size() / 3);
+    qDebug("Normals: %zu", attrib.normals.size() / 3);
+    qDebug("Texcoords: %zu", attrib.texcoords.size() / 2);
+    qDebug("Shapes: %zu", shapes.size());
+
+    for (size_t i = 0; i < shapes.size(); i++) {
         qDebug("Shape %zu: %zu indices", i, shapes[i].mesh.indices.size());
     }
 
     std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
-    for (const auto& shape : shapes)
-    {
-        for (const auto& index : shape.mesh.indices)
-        {
+    for (const auto& shape : shapes) {
+        for (const auto& index : shape.mesh.indices) {
             Vertex vertex{};
 
-            vertex.pos =
-            {
+            vertex.pos = {
                 attrib.vertices[3 * index.vertex_index + 0],
                 attrib.vertices[3 * index.vertex_index + 1],
                 attrib.vertices[3 * index.vertex_index + 2]
             };
 
-            vertex.texCoord =
-            {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
+            // Handle texture coordinates safely
+            if (index.texcoord_index >= 0 && !attrib.texcoords.empty()) {
+                vertex.texCoord = {
+                    attrib.texcoords[2 * index.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                };
+            } else {
+                vertex.texCoord = {0.0f, 0.0f};
+            }
+
+            // Handle normals safely
+            if (index.normal_index >= 0 && !attrib.normals.empty()) {
+                vertex.normal = {
+                    attrib.normals[3 * index.normal_index + 0],
+                    attrib.normals[3 * index.normal_index + 1],
+                    attrib.normals[3 * index.normal_index + 2]
+                };
+            } else {
+                vertex.normal = {0.0f, 0.0f, 1.0f}; // Default up
+            }
 
             vertex.color = {1.0f, 1.0f, 1.0f};
 
-            if (uniqueVertices.count(vertex) == 0)
-            {
+            if (uniqueVertices.count(vertex) == 0) {
                 uniqueVertices[vertex] = static_cast<uint32_t>(entityData.vertices.size());
                 entityData.vertices.push_back(vertex);
             }
@@ -1250,7 +1265,6 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
 
     qDebug("Final vertices: %zu, indices: %zu", entityData.vertices.size(), entityData.indices.size());
 }
-
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
 

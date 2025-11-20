@@ -29,7 +29,16 @@ struct EntityRenderData
     uint32_t mipLevels;
 
     uint32_t entityID;  // To track which entity this belongs to
+
 };
+struct TerrainHit
+{
+    uint32_t triIndex;   // first index of the triangle (i0)
+    float height;
+    glm::vec3 normal;
+    bool hit;
+};
+
 
 class Renderer : public QWindow
 {
@@ -40,6 +49,11 @@ public:
 
     void initVulkan();
     void drawFrame();
+
+    EntityRenderData* getFirstTerrainEntity();
+    TerrainHit findTriangleUnderBall(const EntityRenderData& terrain,
+                                     const glm::vec3& ballPos);
+    glm::mat4 getWorldMatrixForEntity(short entityID);
 
 protected:
     //Qt event handlers - called when requestUpdate(); is called
@@ -154,6 +168,12 @@ private:
     void createVertexBuffer(EntityRenderData& entityData);
     void createIndexBuffer(EntityRenderData& entityData);
 
+        bool sampleTerrainTriangle(const EntityRenderData& terrain,
+                                   uint32_t firstIndex,     // first index of this triangle in terrain.indices
+                                   const glm::vec2& xzPos,
+                                   float& outHeight,
+                                   glm::vec3& outNormal);
+
     void createUniformBuffers();
     void createDescriptorPool();
     void createDescriptorSets();
@@ -179,5 +199,6 @@ private:
     static std::vector<char> readFile(const std::string& filename);
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
 };
+
 
 #endif // RENDERER_H

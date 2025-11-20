@@ -1260,11 +1260,147 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
             }
 
             entityData.indices.push_back(uniqueVertices[vertex]);
+
         }
     }
 
     qDebug("Final vertices: %zu, indices: %zu", entityData.vertices.size(), entityData.indices.size());
+
+    auto* tr = gea::EngineInit::registry.getComponent<gea::Transform>(entityData.entityID);
+    if (tr && tr->isTerrain)
+    {
+        // 1Build the terrain model matrix (T * R * S)
+        glm::mat4 M = gea::TransformManager::buildModelMatrix(*tr);
+
+        //Transform all vertices into world space ONCE
+        for (auto& v : entityData.vertices)
+        {
+            glm::vec4 wp = M * glm::vec4(v.pos, 1.0f);
+            v.pos = glm::vec3(wp);
+
+            // transform normals too
+            v.normal = glm::normalize(glm::mat3(M) * v.normal);
+        }
+
+        //Reset terrain transform so renderer doesn't apply it again
+        tr->mPosition = glm::vec3(0.0f);
+        tr->mRotation = glm::vec3(0.0f);
+        tr->mScale    = glm::vec3(1.0f);
+    }
 }
+EntityRenderData* Renderer::getFirstTerrainEntity()
+{
+    for (auto &erd : entityRenderData)
+    {
+        // Look up the transform for this entity
+        auto it = gea::EngineInit::registry.Transforms.find(erd.entityID);
+        if (it == gea::EngineInit::registry.Transforms.end())
+            continue;
+
+        const gea::Transform &tr = it->second;
+        if (tr.isTerrain)
+        {
+            return &erd;
+        }
+    }
+
+    // No terrain found
+    return nullptr;
+}
+static bool barycentricInXZ(const glm::vec2& p,
+                            const glm::vec3& a,
+                            const glm::vec3& b,
+                            const glm::vec3& c,
+                            float& u, float& v, float& w)
+{
+    // Project to XZ plane
+    glm::vec2 a2(a.x, a.z);
+    glm::vec2 b2(b.x, b.z);
+    glm::vec2 c2(c.x, c.z);
+
+    glm::vec2 v0 = b2 - a2;
+    glm::vec2 v1 = c2 - a2;
+    glm::vec2 v2 = p  - a2;
+
+    float d00 = glm::dot(v0, v0);
+    float d01 = glm::dot(v0, v1);
+    float d11 = glm::dot(v1, v1);
+    float d20 = glm::dot(v2, v0);
+    float d21 = glm::dot(v2, v1);
+
+    float denom = d00 * d11 - d01 * d01;
+    if (fabs(denom) < 1e-8f)
+    {
+        // Degenerate triangle
+        u = v = w = 0.0f;
+        return false;
+    }
+
+    v = (d11 * d20 - d01 * d21) / denom;
+    w = (d00 * d21 - d01 * d20) / denom;
+    u = 1.0f - v - w;
+
+    return (u >= 0.0f && v >= 0.0f && w >= 0.0f);
+}
+
+bool Renderer::sampleTerrainTriangle(const EntityRenderData& terrain,
+                                     uint32_t firstIndex,
+                                     const glm::vec2& xzPos,
+                                     float& outHeight,
+                                     glm::vec3& outNormal)
+{
+    if (firstIndex + 2 >= terrain.indices.size())
+        return false;
+
+    uint32_t i0 = terrain.indices[firstIndex + 0];
+    uint32_t i1 = terrain.indices[firstIndex + 1];
+    uint32_t i2 = terrain.indices[firstIndex + 2];
+
+    const Vertex& v0 = terrain.vertices[i0];
+    const Vertex& v1 = terrain.vertices[i1];
+    const Vertex& v2 = terrain.vertices[i2];
+
+    float u, v, w;
+    if (!barycentricInXZ(xzPos, v0.pos, v1.pos, v2.pos, u, v, w))
+        return false;
+
+    outHeight = u * v0.pos.y + v * v1.pos.y + w * v2.pos.y;
+
+    glm::vec3 n =
+        u * v0.normal +
+        v * v1.normal +
+        w * v2.normal;
+
+    outNormal = glm::normalize(n);
+    return true;
+}
+
+
+TerrainHit Renderer::findTriangleUnderBall(const EntityRenderData& terrain,
+                                 const glm::vec3& ballPos)
+{
+    glm::vec2 xz(ballPos.x, ballPos.z);
+
+    TerrainHit result{};
+    result.hit = false;
+
+    for (uint32_t i = 0; i + 2 < terrain.indices.size(); i += 3)
+    {
+        float h;
+        glm::vec3 n;
+        if (sampleTerrainTriangle(terrain, i, xz, h, n))
+        {
+            result.triIndex = i;
+            result.height   = h;
+            result.normal   = n;
+            result.hit      = true;
+            return result;
+        }
+    }
+
+    return result; // hit=false
+}
+
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
 
@@ -1597,12 +1733,17 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
                          static_cast<uint32_t>(e)); // firstInstance - Use loop index!
     }
 
+
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
     if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
+}
+glm::mat4 Renderer::getWorldMatrixForEntity(short entityID)
+{
+    return gea::TransformManager::getModelMatrix(entityID);
 }
 
 void Renderer::createSyncObjects()

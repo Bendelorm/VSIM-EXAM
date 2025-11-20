@@ -24,6 +24,8 @@ QDir EngineInit::mEngineAssetsDirectory;
 std::unique_ptr<RenderSystem> EngineInit::RenderSystem{nullptr};
 std::unique_ptr<CameraSystem> EngineInit::CameraSystem{nullptr};
 std::unique_ptr<InputSystem>  EngineInit::InputSystem{nullptr};
+std::unique_ptr<PhysicsSystem> EngineInit::PhysicsSystem{nullptr};
+Renderer* EngineInit::rendererPointer = nullptr;
 
 ///
 /// @brief The first thing that runs when starting the engine
@@ -66,10 +68,13 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     if (!timer.isValid())
         timer.start();
 
+    rendererPointer = renderSurface;
+
     // initialize systems
     RenderSystem = std::make_unique<gea::RenderSystem>();
     CameraSystem = std::make_unique<gea::CameraSystem>();
     InputSystem  = std::make_unique<gea::InputSystem>();
+    PhysicsSystem = std::make_unique<gea::PhysicsSystem>();
 
     // create camera entities
     gea::Entity CameraMan = entityManager.createEntity();
@@ -105,36 +110,43 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //}
 
     //Transform/mesh/texture entities
-    gea::Entity RoomOne = entityManager.createEntity();
-    gea::Transform transform1;
-    transform1.name = "VikingRoom";
-    gea::Mesh mesh1;
-    mesh1.path = "../../Assets/Models/viking_room.obj";
-    gea::Texture texture1;
-    texture1.path = "../../Assets/Textures/viking_room.png";
+    //gea::Entity RoomOne = entityManager.createEntity();
+    //gea::Transform transform1;
+    //transform1.name = "VikingRoom";
+    //gea::Mesh mesh1;
+    //mesh1.path = "../../Assets/Models/viking_room.obj";
+    //gea::Texture texture1;
+    //texture1.path = "../../Assets/Textures/viking_room.png";
 
 
 
 
-    gea::Entity RoomTwo = entityManager.createEntity();
-    transform1.mPosition = glm::vec3(2,2,2);
-    gea::Transform transform2;
-    transform2.name = "Sphere";
-    gea::Mesh mesh2;
-    mesh2.path = "../../Assets/Models/Sphere.obj";
-    gea::Texture texture2;
-    texture2.path = "../../Assets/Textures/texture.jpg";
+    gea::Entity Ball = entityManager.createEntity();
+    gea::Transform BallTransform;
+    BallTransform.mPosition = glm::vec3(15,50,0);
+    BallTransform.name = "Ball";
+    gea::Mesh BallMesh;
+    BallMesh.path = "../../Assets/Models/Sphere.obj";
+    gea::Texture BallTexture;
+    BallTexture.path = "../../Assets/Textures/texture.jpg";
+
+    gea::Physics ballPhysics;
+    ballPhysics.velocity = glm::vec3(0.0f);
+    ballPhysics.acceleration = glm::vec3(0.0f);
+    ballPhysics.mass = 1.0f;
+    ballPhysics.radius = 0.5f; // adjust to mesh
 
 
-    //CREATING POINT CLOUD
-    gea::Entity PointCloud = entityManager.createEntity();
-    gea::Transform transform3;
-    transform3.mPosition = glm::vec3(0,0,0);
-    transform3.name = "PointCloud";
-    gea::Mesh mesh3;
-    mesh3.path = "../../las/lasdatafull3_downsample10.obj";
-    gea::Texture texture3;
-    texture3.path = "../../Assets/Textures/texture.jpg";
+    //CREATING TERRAIN
+    gea::Entity Terrain = entityManager.createEntity();
+    gea::Transform TerrainTransform;
+    TerrainTransform.mPosition = glm::vec3(0,0,0);
+    TerrainTransform.name = "Terrain";
+    TerrainTransform.isTerrain = true;
+    gea::Mesh TerrainMesh;
+    TerrainMesh.path = "../../las/lasdatafull3_downsample10.obj";
+    gea::Texture TerrainTexture;
+    TerrainTexture.path = "../../Assets/Textures/texture.jpg";
 
 
     //connect components to mesh
@@ -142,16 +154,17 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //registry.addComponent(RoomOne.mEntityID, mesh1);
     //registry.addComponent(RoomOne.mEntityID, texture1);
     //
-    //registry.addComponent(RoomTwo.mEntityID, transform2);
-    //registry.addComponent(RoomTwo.mEntityID, mesh2);
-    //registry.addComponent(RoomTwo.mEntityID, texture2);
+    registry.addComponent(Ball.mEntityID, BallTransform);
+    registry.addComponent(Ball.mEntityID, BallMesh);
+    registry.addComponent(Ball.mEntityID, BallTexture);
+    registry.addComponent(Ball.mEntityID, ballPhysics);
 
-    registry.addComponent(PointCloud.mEntityID, transform3);
-    registry.addComponent(PointCloud.mEntityID, mesh3);
-    registry.addComponent(PointCloud.mEntityID, texture3);
+    registry.addComponent(Terrain.mEntityID, TerrainTransform);
+    registry.addComponent(Terrain.mEntityID, TerrainMesh);
+    registry.addComponent(Terrain.mEntityID, TerrainTexture);
 
-    gea::TransformManager::setRotation(PointCloud.mEntityID, glm::vec3(-90, 0, 0));
-    gea::TransformManager::setScale(PointCloud.mEntityID, glm::vec3(0.1, 0.1, 0.1));
+    gea::TransformManager::setRotation(Terrain.mEntityID, glm::vec3(-90, 0, 0));
+    gea::TransformManager::setScale(Terrain.mEntityID, glm::vec3(0.1, 0.1, 0.1));
 
 
 
@@ -181,6 +194,7 @@ void EngineInit::update()
 
 
     CameraSystem->Update();
+    PhysicsSystem->update(deltaTime, rendererPointer);
 
     InputSystem->update(deltaTime);
 }

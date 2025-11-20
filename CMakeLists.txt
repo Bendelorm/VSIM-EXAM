@@ -46,6 +46,7 @@ add_executable(QtVulkan
     Systems/RenderSystem.h Systems/RenderSystem.cpp
     TransformManager.h TransformManager.cpp
     TxtToObj.h TxtToObj.cpp
+    Systems/PhysicsSystem.h Systems/PhysicsSystem.cpp
 )
 
 # OpenAL / Sound

@@ -14,6 +14,8 @@ public:
     std::unordered_map<short, gea::Transform> Transforms;
     std::unordered_map<short, gea::Mesh> Meshes;
     std::unordered_map<short, gea::Texture> Textures;
+    std::unordered_map<short, gea::Physics> Physics;
+
 
 
 
@@ -72,6 +74,17 @@ inline gea::Texture* registry::getComponent<gea::Texture>(short entityID)
 
     return nullptr;
 }
+template<>
+inline gea::Physics* registry::getComponent<gea::Physics>(short entityID)
+{
+    auto iterator = Physics.find(entityID);
+
+    if (iterator != Physics.end())
+        return &iterator->second;
+
+    return nullptr;
+}
+
 
 /// @brief Adds a component to an entity
 /// @param entityID
@@ -98,6 +111,12 @@ inline void registry::addComponent<gea::Texture>(short entityID, const gea::Text
 {
     Textures[entityID] = component;
 }
+template<>
+inline void registry::addComponent<gea::Physics>(short entityID, const gea::Physics &component)
+{
+    Physics[entityID] = component;
+}
+
 
 
 #endif // REGISTRY_H

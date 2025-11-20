@@ -12,6 +12,7 @@
 #include "macros.h"
 #include "Systems/inputsystem.h"
 #include "TxtToObj.h"
+#include "Systems/PhysicsSystem.h"
 
 namespace gea
 {
@@ -25,11 +26,14 @@ public:
     static float deltaTime;
     static float currentTime;
 
+    static Renderer* rendererPointer;
+
 
     //Systems
     static std::unique_ptr<gea::RenderSystem> RenderSystem;
     static std::unique_ptr<gea::CameraSystem> CameraSystem;
     static std::unique_ptr<InputSystem> InputSystem;
+    static std::unique_ptr<PhysicsSystem> PhysicsSystem;
 
 
     static QString mat4ToQString(const glm::mat4& mat);

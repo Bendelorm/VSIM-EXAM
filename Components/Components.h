@@ -34,6 +34,14 @@ struct Transform : Component
     glm::vec3 mPosition{0.0f, 0.0f, 0.0f};
     glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
     glm::vec3 mScale{1.0f, 1.0f, 1.0f};
+    bool isTerrain{false};
+};
+struct Physics : Component
+{
+    glm::vec3 velocity{0.0f};      // v
+    glm::vec3 acceleration{0.0f};  // a
+    float mass{1.0f};
+    float radius{0.5f};            // ball radius for ground contact
 };
 
 struct Mesh : Component

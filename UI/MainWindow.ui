@@ -120,6 +120,7 @@
    <addaction name="actionPlay"/>
    <addaction name="actionStopPlay"/>
    <addaction name="actionPlaySound"/>
+   <addaction name="actionPhysicsToggle"/>
   </widget>
   <widget class="QDockWidget" name="ConsoleDock">
    <property name="windowTitle">
@@ -384,6 +385,26 @@
   <action name="actionDelete_File">
    <property name="text">
     <string>Delete File</string>
+   </property>
+  </action>
+  <action name="actionPhysicsToggle">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset theme="QIcon::ThemeIcon::GoNext"/>
+   </property>
+   <property name="text">
+    <string>PhysicsToggle</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::NoRole</enum>
    </property>
   </action>
  </widget>

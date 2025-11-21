@@ -43,9 +43,9 @@ private:
     void updateInspector(uint32_t entityID);
     uint32_t currentSelectedEntityID = 0;
 private slots:
+    void on_actionPhysicsToggle_triggered(bool checked);
     void on_EntitiesList_itemClicked(QListWidgetItem *item);
     void onTransformValueChanged();
-
     void on_actionPlay_triggered();
     void on_actionStopPlay_triggered();
     void on_actionToogle_Console_Log_triggered();

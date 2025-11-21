@@ -12,6 +12,7 @@
 #include <qlistwidget.h>
 #include "../Widgets/widgetfile.h"
 #include <QDoubleSpinBox>
+#include "../Systems/PhysicsSystem.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -414,4 +415,8 @@ void MainWindow::on_actionAdd_FIle_triggered()
     QLog("Added file " + fileInfo.fileName() + " to the project! Did it succeed? " + QString::fromStdString(std::to_string(re)), "green");
 
     UpdateFileView(); //TODO: MainWindow::on_actionAdd_FIle_triggered() - Should be changed to only add the new file to the file view, instead of updating the entire view from scratch
+}
+void MainWindow::on_actionPhysicsToggle_triggered(bool checked)
+{
+    gea::PhysicsSystem::setEnabled(checked);
 }

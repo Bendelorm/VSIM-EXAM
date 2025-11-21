@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
+#include <glm/gtc/quaternion.hpp>
 
 //Need namespace, since we start to get naming collisions with other code
 namespace gea
@@ -40,8 +41,10 @@ struct Physics : Component
 {
     glm::vec3 velocity{0.0f};      // v
     glm::vec3 acceleration{0.0f};  // a
-    float mass{1.0f};
+    float mass{10.0f};
     float radius{0.5f};            // ball radius for ground contact
+    int currentTriIndex{-1};
+    glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};   // rotation state for the ball
 };
 
 struct Mesh : Component

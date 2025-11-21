@@ -55,6 +55,10 @@ public:
                                      const glm::vec3& ballPos);
     glm::mat4 getWorldMatrixForEntity(short entityID);
 
+    TerrainHit findTriangleUnderBallWithHint(const EntityRenderData& terrain,
+                                             const glm::vec3& ballPos,
+                                             int hintTriIndex);
+
 protected:
     //Qt event handlers - called when requestUpdate(); is called
     void exposeEvent(QExposeEvent* event) override;

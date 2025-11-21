@@ -1401,6 +1401,76 @@ TerrainHit Renderer::findTriangleUnderBall(const EntityRenderData& terrain,
     return result; // hit=false
 }
 
+TerrainHit Renderer::findTriangleUnderBallWithHint(const EntityRenderData& terrain,
+                                                   const glm::vec3& ballPos,
+                                                   int hintTriIndex)
+{
+    glm::vec2 xz(ballPos.x, ballPos.z);
+    TerrainHit result{};
+    result.hit = false;
+
+    //Try the hinted triangle, if valid
+    if (hintTriIndex >= 0 && hintTriIndex + 2 < (int)terrain.indices.size())
+    {
+        float h;
+        glm::vec3 n;
+        if (sampleTerrainTriangle(terrain, (uint32_t)hintTriIndex, xz, h, n))
+        {
+            result.triIndex = (uint32_t)hintTriIndex;
+            result.height   = h;
+            result.normal   = n;
+            result.hit      = true;
+            return result;
+        }
+    }
+
+    //Try a small window around the hint (local search)
+    const int TRI_STRIDE = 3;
+    const int TRI_WINDOW = 100;   // 100 triangles on each side. I should probably reduce amount
+
+    if (hintTriIndex >= 0)
+    {
+        int start = hintTriIndex - TRI_WINDOW * TRI_STRIDE;
+        int end   = hintTriIndex + TRI_WINDOW * TRI_STRIDE;
+
+        if (start < 0) start = 0;
+        if (end >= (int)terrain.indices.size())
+            end = (int)terrain.indices.size() - 3;
+
+        for (int i = start; i <= end; i += TRI_STRIDE)
+        {
+            float h;
+            glm::vec3 n;
+            if (sampleTerrainTriangle(terrain, (uint32_t)i, xz, h, n))
+            {
+                result.triIndex = (uint32_t)i;
+                result.height   = h;
+                result.normal   = n;
+                result.hit      = true;
+                return result;
+            }
+        }
+    }
+
+    //Fallback: full search
+    for (uint32_t i = 0; i + 2 < terrain.indices.size(); i += 3)
+    {
+        float h;
+        glm::vec3 n;
+        if (sampleTerrainTriangle(terrain, i, xz, h, n))
+        {
+            result.triIndex = i;
+            result.height   = h;
+            result.normal   = n;
+            result.hit      = true;
+            return result;
+        }
+    }
+
+    return result;
+}
+
+
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
 

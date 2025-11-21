@@ -92,14 +92,14 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
 
     //TxtToObj::convertTxtToObj("../../las/lasdata2_downsample1000.txt", "../../las/lasdatafull2_downsample1000_triangles.obj" );
     //TxtToObj converter;
-    //if (converter.loadPointsFromTxt("../../las/lasdata3_downsample10.txt", 1))
+    //if (converter.loadPointsFromTxt("../../las/lasdata4_downsample10.txt", 1))
     //{
     //    converter.createRegularGrid(5.0);
     //    converter.generateTriangulation();
     //    converter.calculateNormals();
     //    converter.generateUVCoordinates();
     //
-    //    if (!converter.exportToOBJ("../../las/lasdatafull3_downsample10.obj"))
+    //    if (!converter.exportToOBJ("../../las/lasdatafull4_downsample10.obj"))
     //    {
     //        qDebug() << "Failed to export mesh!";
     //    }
@@ -108,22 +108,21 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //{
     //    qDebug() << "Failed to load point cloud!";
     //}
-
-    //Transform/mesh/texture entities
-    //gea::Entity RoomOne = entityManager.createEntity();
-    //gea::Transform transform1;
-    //transform1.name = "VikingRoom";
-    //gea::Mesh mesh1;
-    //mesh1.path = "../../Assets/Models/viking_room.obj";
-    //gea::Texture texture1;
-    //texture1.path = "../../Assets/Textures/viking_room.png";
+    // Transform/mesh/texture entities
+    // gea::Entity RoomOne = entityManager.createEntity();
+    // gea::Transform transform1;
+    // transform1.name = "VikingRoom";
+    // gea::Mesh mesh1;
+    // mesh1.path = "../../Assets/Models/viking_room.obj";
+    // gea::Texture texture1;
+    // texture1.path = "../../Assets/Textures/viking_room.png";
 
 
 
 
     gea::Entity Ball = entityManager.createEntity();
     gea::Transform BallTransform;
-    BallTransform.mPosition = glm::vec3(15,50,0);
+    BallTransform.mPosition = glm::vec3(-2,2,-4);
     BallTransform.name = "Ball";
     gea::Mesh BallMesh;
     BallMesh.path = "../../Assets/Models/Sphere.obj";
@@ -133,9 +132,8 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Physics ballPhysics;
     ballPhysics.velocity = glm::vec3(0.0f);
     ballPhysics.acceleration = glm::vec3(0.0f);
-    ballPhysics.mass = 1.0f;
-    ballPhysics.radius = 0.5f; // adjust to mesh
-
+    ballPhysics.mass = 20.0f;
+    ballPhysics.radius = 0.2f; // adjust to mesh
 
     //CREATING TERRAIN
     gea::Entity Terrain = entityManager.createEntity();
@@ -144,7 +142,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     TerrainTransform.name = "Terrain";
     TerrainTransform.isTerrain = true;
     gea::Mesh TerrainMesh;
-    TerrainMesh.path = "../../las/lasdatafull3_downsample10.obj";
+    TerrainMesh.path = "../../las/lasdatafull4_downsample10.obj";
     gea::Texture TerrainTexture;
     TerrainTexture.path = "../../Assets/Textures/texture.jpg";
 
@@ -162,6 +160,8 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(Terrain.mEntityID, TerrainTransform);
     registry.addComponent(Terrain.mEntityID, TerrainMesh);
     registry.addComponent(Terrain.mEntityID, TerrainTexture);
+
+    gea::TransformManager::setScale(Ball.mEntityID, glm::vec3(0.2, 0.2, 0.2));
 
     gea::TransformManager::setRotation(Terrain.mEntityID, glm::vec3(-90, 0, 0));
     gea::TransformManager::setScale(Terrain.mEntityID, glm::vec3(0.1, 0.1, 0.1));

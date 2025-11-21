@@ -8,6 +8,17 @@ bool gea::PhysicsSystem::s_enabled = false;
 
 namespace gea
 {
+static bool isInsideFrictionZone(const glm::vec3& p)
+{
+    //tweak these to match the area I want
+    const float minX =  10.0f;
+    const float maxX =  7.0f;
+    const float minZ =  20.0f;
+    const float maxZ =  40.0f;
+
+    return (p.x >= minX && p.x <= maxX &&
+            p.z >= minZ && p.z <= maxZ);
+}
 
 void PhysicsSystem::setEnabled(bool enabled)
 {
@@ -87,10 +98,35 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
 
             if (onSurface)
             {
-                //Acceleration along slope (eq. 9.14)
+                // Acceleration along slope (eq. 9.14)
                 float gDotN = glm::dot(gvec, n);
-                a = gvec - gDotN * n;
+                a = gvec - gDotN * n;   // base slope acceleration
+
+                // BASE FRICTION EVERYWHERE ON SURFACE
+                glm::vec3 vTan = phys.velocity - glm::dot(phys.velocity, n) * n;
+                float speed = glm::length(vTan);
+
+                if (speed > 0.001f)
+                {
+                    glm::vec3 dir = vTan / speed;  // unit tangent
+
+                    // baseline friction coefficient (applied everywhere)
+                    const float muBase  = 0.1f;   // tweak as you like
+                    float mu = muBase;
+
+                    // EXTRA FRICTION IN SPECIAL ZONE
+                    if (isInsideFrictionZone(pos))
+                    {
+                        const float muExtra = 0.2f; // additional friction in red area
+                        mu += muExtra;
+                    }
+                    glm::vec3 aFriction = -mu * g * dir;
+
+                    // total acceleration = slope acceleration + friction
+                    a += aFriction;
+                }
             }
+
             else
             {
                 // free fall

@@ -164,6 +164,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::TransformManager::setScale(Ball.mEntityID, glm::vec3(0.2, 0.2, 0.2));
 
     gea::TransformManager::setRotation(Terrain.mEntityID, glm::vec3(-90, 0, 0));
+    gea::TransformManager::setPosition(Terrain.mEntityID, glm::vec3(0, -2, 0));
     gea::TransformManager::setScale(Terrain.mEntityID, glm::vec3(0.1, 0.1, 0.1));
 
 

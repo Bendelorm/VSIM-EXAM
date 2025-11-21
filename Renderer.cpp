@@ -1269,24 +1269,40 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
     auto* tr = gea::EngineInit::registry.getComponent<gea::Transform>(entityData.entityID);
     if (tr && tr->isTerrain)
     {
-        // 1Build the terrain model matrix (T * R * S)
         glm::mat4 M = gea::TransformManager::buildModelMatrix(*tr);
 
-        //Transform all vertices into world space ONCE
         for (auto& v : entityData.vertices)
         {
             glm::vec4 wp = M * glm::vec4(v.pos, 1.0f);
             v.pos = glm::vec3(wp);
-
-            // transform normals too
             v.normal = glm::normalize(glm::mat3(M) * v.normal);
         }
 
-        //Reset terrain transform so renderer doesn't apply it again
         tr->mPosition = glm::vec3(0.0f);
         tr->mRotation = glm::vec3(0.0f);
         tr->mScale    = glm::vec3(1.0f);
+
+        //FRICTION ZONE BOUNDS (same as physics)
+        const float minX =  10.0f;
+        const float maxX =  7.0f;
+        const float minZ =  20.0f;
+        const float maxZ =  40.0f;
+
+        for (auto& v : entityData.vertices)
+        {
+            if (v.pos.x >= minX && v.pos.x <= maxX &&
+                v.pos.z >= minZ && v.pos.z <= maxZ)
+            {
+                // mark friction area in red
+                v.color = glm::vec3(1.0f, 0.0f, 0.0f);
+            }
+            else
+            {
+                v.color = glm::vec3(1.0f, 1.0f, 1.0f);
+            }
+        }
     }
+
 }
 EntityRenderData* Renderer::getFirstTerrainEntity()
 {

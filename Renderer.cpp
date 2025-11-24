@@ -79,6 +79,7 @@ void Renderer::initVulkan()
     createRenderPass();
     createDescriptorSetLayout();
     createGraphicsPipeline();
+    createTracePipeline();
     createCommandPool();
     createColorResources();
     createDepthResources();
@@ -111,6 +112,7 @@ void Renderer::cleanupSwapChain() {
     vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     vkDestroyPipeline(device, graphicsPipeline, nullptr);
+    vkDestroyPipeline(device, tracePipeline, nullptr);
     vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
     vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -182,6 +184,7 @@ void Renderer::recreateSwapChain() {
     createImageViews();
     createRenderPass();
     createGraphicsPipeline();
+    createTracePipeline();
     createColorResources();
     createDepthResources();
     createFramebuffers();
@@ -1486,6 +1489,200 @@ TerrainHit Renderer::findTriangleUnderBallWithHint(const EntityRenderData& terra
     return result;
 }
 
+void Renderer::setTraceCurve(const std::vector<glm::vec3>& points)
+{
+    tracePoints = points;
+    traceVertexCount = static_cast<uint32_t>(tracePoints.size());
+
+    if (traceVertexCount == 0)
+        return;
+
+    createOrResizeTraceBuffer(traceVertexCount);
+    updateTraceBuffer();
+}
+
+void Renderer::createOrResizeTraceBuffer(size_t pointCount)
+{
+    // Destroy old buffer if size changed
+    if (traceVertexBuffer != VK_NULL_HANDLE)
+    {
+        vkDestroyBuffer(device, traceVertexBuffer, nullptr);
+        vkFreeMemory(device, traceVertexBufferMemory, nullptr);
+        traceVertexBuffer = VK_NULL_HANDLE;
+        traceVertexBufferMemory = VK_NULL_HANDLE;
+    }
+
+    VkDeviceSize bufferSize = sizeof(glm::vec3) * pointCount;
+
+    // Create device-local vertex buffer for the trace
+    createBuffer(bufferSize,
+                 VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                 traceVertexBuffer,
+                 traceVertexBufferMemory);
+}
+
+void Renderer::updateTraceBuffer()
+{
+    if (traceVertexCount == 0 || traceVertexBuffer == VK_NULL_HANDLE)
+        return;
+
+    VkDeviceSize bufferSize = sizeof(glm::vec3) * traceVertexCount;
+
+    // Create staging buffer
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    createBuffer(bufferSize,
+                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer,
+                 stagingBufferMemory);
+
+    // Upload CPU data to staging
+    void* dataPtr = nullptr;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &dataPtr);
+    memcpy(dataPtr, tracePoints.data(), static_cast<size_t>(bufferSize));
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    // Copy to device local vertex buffer
+    copyBuffer(stagingBuffer, traceVertexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Renderer::createTracePipeline()
+{
+    auto vertShaderCode = readFile(PATH + "Shaders/TraceShader.vert.spv");
+    auto fragShaderCode = readFile(PATH + "Shaders/TraceShader.frag.spv");
+
+    VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+
+    VkPipelineShaderStageCreateInfo vertStage{};
+    vertStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertStage.stage  = VK_SHADER_STAGE_VERTEX_BIT;
+    vertStage.module = vertShaderModule;
+    vertStage.pName  = "main";
+
+    VkPipelineShaderStageCreateInfo fragStage{};
+    fragStage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragStage.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragStage.module = fragShaderModule;
+    fragStage.pName  = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertStage, fragStage };
+
+    //Vertex input: just vec3 position at location 0
+    VkVertexInputBindingDescription bindingDesc{};
+    bindingDesc.binding   = 0;
+    bindingDesc.stride    = sizeof(glm::vec3);
+    bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+    VkVertexInputAttributeDescription attrDesc{};
+    attrDesc.location = 0;
+    attrDesc.binding  = 0;
+    attrDesc.format   = VK_FORMAT_R32G32B32_SFLOAT;
+    attrDesc.offset   = 0;
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputInfo.vertexBindingDescriptionCount   = 1;
+    vertexInputInfo.pVertexBindingDescriptions      = &bindingDesc;
+    vertexInputInfo.vertexAttributeDescriptionCount = 1;
+    vertexInputInfo.pVertexAttributeDescriptions    = &attrDesc;
+
+    //Input assembly: line strip
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    //Reuse viewport, rasterizer, multisampling, depth, blending setup
+    //Mostly copy from createGraphicsPipeline
+
+    VkViewport viewport{};
+    viewport.x        = 0.0f;
+    viewport.y        = 0.0f;
+    viewport.width    = static_cast<float>(swapChainExtent.width);
+    viewport.height   = static_cast<float>(swapChainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapChainExtent;
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.pViewports    = &viewport;
+    viewportState.scissorCount  = 1;
+    viewportState.pScissors     = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType       = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable        = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    rasterizer.polygonMode             = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth               = 2.0f;  // slightly thicker line
+    rasterizer.cullMode                = VK_CULL_MODE_NONE; // lines don't need culling
+    rasterizer.frontFace               = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.depthBiasEnable         = VK_FALSE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable   = VK_FALSE;
+    multisampling.rasterizationSamples  = msaaSamples;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable       = VK_TRUE;
+    depthStencil.depthWriteEnable      = VK_FALSE; // do not write depth, just test
+    depthStencil.depthCompareOp        = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable     = VK_FALSE;
+
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
+    colorBlendAttachment.colorWriteMask =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    colorBlendAttachment.blendEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType           = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable   = VK_FALSE;
+    colorBlending.attachmentCount = 1;
+    colorBlending.pAttachments    = &colorBlendAttachment;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount          = 2;
+    pipelineInfo.pStages             = shaderStages;
+    pipelineInfo.pVertexInputState   = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState      = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState   = &multisampling;
+    pipelineInfo.pDepthStencilState  = &depthStencil;
+    pipelineInfo.pColorBlendState    = &colorBlending;
+
+    //reuse existing pipelineLayout and renderPass
+    pipelineInfo.layout     = pipelineLayout;
+    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.subpass    = 0;
+
+    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+
+    if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1,
+                                  &pipelineInfo, nullptr, &tracePipeline) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create trace graphics pipeline!");
+    }
+
+    vkDestroyShaderModule(device, vertShaderModule, nullptr);
+    vkDestroyShaderModule(device, fragShaderModule, nullptr);
+}
 
 void Renderer::createVertexBuffer(EntityRenderData& entityData) {
     VkDeviceSize bufferSize = sizeof(entityData.vertices[0]) * entityData.vertices.size();
@@ -1818,7 +2015,19 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
                          0,                    // vertexOffset
                          static_cast<uint32_t>(e)); // firstInstance - Use loop index!
     }
+    //Draw the ball trace as a line strip
+    if (traceVertexCount > 0 && traceVertexBuffer != VK_NULL_HANDLE)
+    {
+        vkCmdBindPipeline(commandBuffers[imageIndex],
+                          VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          tracePipeline);
 
+        VkBuffer vertexBuffers[] = { traceVertexBuffer };
+        VkDeviceSize offsets[] = { 0 };
+        vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
+
+        vkCmdDraw(commandBuffers[imageIndex], traceVertexCount, 1, 0, 0);
+    }
 
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
 

@@ -58,6 +58,7 @@ public:
     TerrainHit findTriangleUnderBallWithHint(const EntityRenderData& terrain,
                                              const glm::vec3& ballPos,
                                              int hintTriIndex);
+    void setTraceCurve(const std::vector<glm::vec3>& points);
 
 protected:
     //Qt event handlers - called when requestUpdate(); is called
@@ -66,6 +67,22 @@ protected:
     bool event(QEvent* event) override;
 
 private:
+    // CPU-side trace data
+    std::vector<glm::vec3> tracePoints;
+    uint32_t traceVertexCount = 0;
+
+    // GPU-side trace buffer
+    VkBuffer traceVertexBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory traceVertexBufferMemory = VK_NULL_HANDLE;
+
+    // Simple line pipeline for the trace
+    VkPipeline tracePipeline = VK_NULL_HANDLE;
+
+    void createOrResizeTraceBuffer(size_t pointCount);
+    void updateTraceBuffer();
+    void createTracePipeline();
+
+
     //Dynamic UBO stuff
     VkDeviceSize dynamicAlignment;
     std::vector<glm::mat4> modelMatrices;

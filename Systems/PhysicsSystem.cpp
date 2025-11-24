@@ -5,6 +5,10 @@
 #include <glm/gtc/quaternion.hpp>
 
 bool gea::PhysicsSystem::s_enabled = false;
+// trace sampling state
+float gea::PhysicsSystem::s_traceTimer = 0.0f;
+float gea::PhysicsSystem::s_traceSampleInterval = 0.1f; //every 0.1s
+std::vector<glm::vec3> gea::PhysicsSystem::s_traceControlPoints;
 
 namespace gea
 {
@@ -20,13 +24,21 @@ static bool isInsideFrictionZone(const glm::vec3& p)
             p.z >= minZ && p.z <= maxZ);
 }
 
+void PhysicsSystem::clearTrace()
+{
+    s_traceControlPoints.clear();
+    s_traceTimer = 0.0f;
+}
+
+// Reset physics AND trace when disabling
 void PhysicsSystem::setEnabled(bool enabled)
 {
     s_enabled = enabled;
-
-    // When turning physics OFF, reset all physics components
     if (!s_enabled)
+    {
         resetAllPhysics();
+        clearTrace();
+    }
 }
 
 void PhysicsSystem::resetAllPhysics()
@@ -39,11 +51,71 @@ void PhysicsSystem::resetAllPhysics()
         phys.orientation     = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     }
 }
+glm::vec3 PhysicsSystem::evalCubicUniformBSplineSegment(
+    const glm::vec3& P0,
+    const glm::vec3& P1,
+    const glm::vec3& P2,
+    const glm::vec3& P3,
+    float t)
+{
+    float t2 = t * t;
+    float t3 = t2 * t;
+
+    // Standard uniform cubic B-spline basis:
+    float B0 = (-t3 + 3.0f*t2 - 3.0f*t + 1.0f) / 6.0f;
+    float B1 = ( 3.0f*t3 - 6.0f*t2 + 4.0f) / 6.0f;
+    float B2 = (-3.0f*t3 + 3.0f*t2 + 3.0f*t + 1.0f) / 6.0f;
+    float B3 = ( t3 ) / 6.0f;
+
+    return B0*P0 + B1*P1 + B2*P2 + B3*P3;
+}
+void PhysicsSystem::addTraceSample(const glm::vec3& p)
+{
+    s_traceControlPoints.push_back(p);
+}
+void PhysicsSystem::rebuildTraceCurve(Renderer* renderer)
+{
+    if (!renderer) return;
+
+    const auto& ctrl = s_traceControlPoints;
+    std::vector<glm::vec3> curve;
+
+    if (ctrl.size() < 4)
+    {
+        // Not enough points for a cubic B-spline
+        curve = ctrl;
+    }
+    else
+    {
+        // For n control points, we get (n - 3) segments
+        const int samplesPerSegment = 8; // tweak for smoothness
+
+        for (size_t i = 0; i + 3 < ctrl.size(); ++i)
+        {
+            const glm::vec3& P0 = ctrl[i + 0];
+            const glm::vec3& P1 = ctrl[i + 1];
+            const glm::vec3& P2 = ctrl[i + 2];
+            const glm::vec3& P3 = ctrl[i + 3];
+
+            for (int s = 0; s <= samplesPerSegment; ++s)
+            {
+                float t = static_cast<float>(s) / static_cast<float>(samplesPerSegment);
+                glm::vec3 C = evalCubicUniformBSplineSegment(P0,P1,P2,P3,t);
+                curve.push_back(C);
+            }
+        }
+    }
+
+    // Tell renderer about the updated trace curve
+    renderer->setTraceCurve(curve);
+}
 
 void PhysicsSystem::update(float dt, Renderer* renderer)
 {
     if (!s_enabled) return;
     if (!renderer) return;
+
+    s_traceTimer += dt;
 
     EntityRenderData* terrainEntity = renderer->getFirstTerrainEntity();
     if (!terrainEntity) return;
@@ -255,6 +327,19 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                 glm::vec3 eulerRad = glm::eulerAngles(phys.orientation);
                 transform.mRotation = glm::degrees(eulerRad);
             }
+        }
+        if (s_traceTimer >= s_traceSampleInterval)
+        {
+            // Put the trace on the ball position
+            glm::vec3 tracePos = pos;
+
+            addTraceSample(tracePos);
+
+            // Rebuild B-spline curve and send to renderer
+            rebuildTraceCurve(renderer);
+
+            // Reset timer
+            s_traceTimer = 0.0f;
         }
     }
 }

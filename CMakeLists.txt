@@ -35,6 +35,8 @@ add_executable(QtVulkan
     Shaders/vert.spv
     Shaders/PhongShader.frag
     Shaders/PhongShader.vert
+    Shaders/TraceShader.vert
+    Shaders/TraceShader.frag
     registry.h
     entityManager.h
     Systems/inputsystem.h Systems/inputsystem.cpp

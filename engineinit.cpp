@@ -118,11 +118,26 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     // texture1.path = "../../Assets/Textures/viking_room.png";
 
 
+    // OBSTACLE
+    gea::Entity Obstacle = entityManager.createEntity();
+    gea::Transform ObstacleTransform;
+    ObstacleTransform.mPosition = glm::vec3(-2.0f, -7.0f, 34.0f);  // adjust as needed
+    ObstacleTransform.mRotation = glm::vec3(0.0f, -23.0f, 0.0f);
+    ObstacleTransform.mScale    = glm::vec3(4.0f, 4.0f, 4.0f);  // cube size
+    ObstacleTransform.name      = "Obstacle";
+    ObstacleTransform.isObstacle = true;
+
+    // assumes you have a cube model
+    gea::Mesh ObstacleMesh;
+    ObstacleMesh.path = "../../Assets/Models/Cube.obj";
+
+    gea::Texture ObstacleTex;
+    ObstacleTex.path = "../../Assets/Textures/viking_room.png";
 
 
     gea::Entity Ball = entityManager.createEntity();
     gea::Transform BallTransform;
-    BallTransform.mPosition = glm::vec3(-2,2,-4);
+    BallTransform.mPosition = glm::vec3(-12,2,-17);
     BallTransform.name = "Ball";
     gea::Mesh BallMesh;
     BallMesh.path = "../../Assets/Models/Sphere.obj";
@@ -151,7 +166,11 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //registry.addComponent(RoomOne.mEntityID, transform1);
     //registry.addComponent(RoomOne.mEntityID, mesh1);
     //registry.addComponent(RoomOne.mEntityID, texture1);
-    //
+
+    registry.addComponent(Obstacle.mEntityID, ObstacleTransform);
+    registry.addComponent(Obstacle.mEntityID, ObstacleMesh);
+    registry.addComponent(Obstacle.mEntityID, ObstacleTex);
+
     registry.addComponent(Ball.mEntityID, BallTransform);
     registry.addComponent(Ball.mEntityID, BallMesh);
     registry.addComponent(Ball.mEntityID, BallTexture);

@@ -11,9 +11,9 @@ namespace gea
 static bool isInsideFrictionZone(const glm::vec3& p)
 {
     //tweak these to match the area I want
-    const float minX =  10.0f;
-    const float maxX =  7.0f;
-    const float minZ =  20.0f;
+    const float minX =  -10.0f;
+    const float maxX =  40.0f;
+    const float minZ =  5.0f;
     const float maxZ =  40.0f;
 
     return (p.x >= minX && p.x <= maxX &&
@@ -51,6 +51,27 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
 
     const float g = 9.81f;
     const glm::vec3 gvec(0.0f, -g, 0.0f);
+
+
+    //AABB Obstacle (Default blender cube is 2x2x2 so half is 1)
+    glm::vec3 obstacleMin(0.0f);
+    glm::vec3 obstacleMax(0.0f);
+    bool hasObstacle = false;
+
+    for (auto& [id, tr] : EngineInit::registry.Transforms)
+    {
+        if (tr.isObstacle)
+        {
+            glm::vec3 halfExtents = 1.0f * tr.mScale;
+            glm::vec3 center      = tr.mPosition;
+
+            obstacleMin = center - halfExtents;
+            obstacleMax = center + halfExtents;
+
+            hasObstacle = true;
+            break;
+        }
+    }
 
     // Loop all entities with Physics
     for (auto& [entityID, phys] : EngineInit::registry.Physics)
@@ -164,6 +185,50 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                 onSurface = true;
             }
         }
+        //Collision with obstacle (sphere vs AABB)
+        if (hasObstacle)
+        {
+            // Closest point on the box to the ball center
+            glm::vec3 closest = glm::clamp(pos, obstacleMin, obstacleMax);
+            glm::vec3 diff    = pos - closest;
+            float dist2       = glm::dot(diff, diff);
+
+            float r = phys.radius;
+            if (dist2 < r * r)
+            {
+                float dist = std::sqrt(dist2);
+
+                glm::vec3 n;
+                if (dist > 0.001f)
+                {
+                    n = diff / dist;   // collision normal
+                }
+                else
+                {
+                    // Ball center is exactly inside box center: choose axis
+                    glm::vec3 boxCenter = 0.5f * (obstacleMin + obstacleMax);
+                    glm::vec3 local = pos - boxCenter;
+                    glm::vec3 absLocal = glm::abs(local);
+
+                    if (absLocal.x > absLocal.y && absLocal.x > absLocal.z)
+                        n = glm::vec3((local.x > 0.0f) ? 1.0f : -1.0f, 0.0f, 0.0f);
+                    else if (absLocal.y > absLocal.z)
+                        n = glm::vec3(0.0f, (local.y > 0.0f) ? 1.0f : -1.0f, 0.0f);
+                    else
+                        n = glm::vec3(0.0f, 0.0f, (local.z > 0.0f) ? 1.0f : -1.0f);
+                }
+
+                float penetration = r - (dist > 0.001f ? dist : 0.0f);
+
+                // Push ball out of the obstacle
+                pos += n * penetration;
+
+                // Remove velocity into the obstacle
+                float vDotN = glm::dot(phys.velocity, n);
+                if (vDotN < 0.0f)
+                    phys.velocity -= vDotN * n;
+            }
+        }
 
         //Rolling rotation: only while in contact (Not working properly)
         if (hit.hit && onSurface)
@@ -175,7 +240,7 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                 phys.velocity - glm::dot(phys.velocity, n) * n;
 
             float speed = glm::length(vTan);
-            if (speed > 1e-4f)
+            if (speed > 0.001f)
             {
                 // Axis of rotation
                 glm::vec3 axis = glm::normalize(glm::cross(n, vTan));

@@ -36,6 +36,7 @@ struct Transform : Component
     glm::vec3 mRotation{0.0f, 0.0f, 0.0f};
     glm::vec3 mScale{1.0f, 1.0f, 1.0f};
     bool isTerrain{false};
+    bool isObstacle{false};
 };
 struct Physics : Component
 {

@@ -1283,9 +1283,9 @@ void Renderer::loadModel(EntityRenderData& entityData, const std::string& path)
         tr->mScale    = glm::vec3(1.0f);
 
         //FRICTION ZONE BOUNDS (same as physics)
-        const float minX =  10.0f;
-        const float maxX =  7.0f;
-        const float minZ =  20.0f;
+        const float minX =  -10.0f;
+        const float maxX =  40.0f;
+        const float minZ =  5.0f;
         const float maxZ =  40.0f;
 
         for (auto& v : entityData.vertices)

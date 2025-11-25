@@ -1489,38 +1489,68 @@ TerrainHit Renderer::findTriangleUnderBallWithHint(const EntityRenderData& terra
     return result;
 }
 
-void Renderer::setTraceCurve(const std::vector<glm::vec3>& points)
+void Renderer::setAllTraceCurves(const std::vector<std::vector<glm::vec3>>& curves)
 {
-    tracePoints = points;
-    traceVertexCount = static_cast<uint32_t>(tracePoints.size());
+    traceCurves = curves;
+
+    traceVertices.clear();
+    traceStarts.clear();
+    traceCounts.clear();
+
+    uint32_t currentStart = 0;
+
+    for (const auto& curve : traceCurves)
+    {
+        if (curve.size() < 2)
+        {
+            // nothing to draw
+            traceStarts.push_back(currentStart);
+            traceCounts.push_back(0);
+            continue;
+        }
+
+        traceStarts.push_back(currentStart);
+        traceCounts.push_back(static_cast<uint32_t>(curve.size()));
+
+        traceVertices.insert(traceVertices.end(), curve.begin(), curve.end());
+        currentStart += static_cast<uint32_t>(curve.size());
+    }
+
+    traceVertexCount = currentStart;
 
     if (traceVertexCount == 0)
         return;
 
+    // Ensure GPU buffer is large enough and upload
     createOrResizeTraceBuffer(traceVertexCount);
     updateTraceBuffer();
 }
 
-void Renderer::createOrResizeTraceBuffer(size_t pointCount)
+void Renderer::createOrResizeTraceBuffer(size_t vertexCount)
 {
-    // Destroy old buffer if size changed
+    if (traceVertexBuffer != VK_NULL_HANDLE && vertexCount <= traceVertexCapacity)
+        return;
+
     if (traceVertexBuffer != VK_NULL_HANDLE)
     {
+        vkDeviceWaitIdle(device); // ensure no command buffer is using it
         vkDestroyBuffer(device, traceVertexBuffer, nullptr);
         vkFreeMemory(device, traceVertexBufferMemory, nullptr);
         traceVertexBuffer = VK_NULL_HANDLE;
         traceVertexBufferMemory = VK_NULL_HANDLE;
     }
 
-    VkDeviceSize bufferSize = sizeof(glm::vec3) * pointCount;
+    VkDeviceSize bufferSize = sizeof(glm::vec3) * vertexCount;
 
-    // Create device-local vertex buffer for the trace
     createBuffer(bufferSize,
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  traceVertexBuffer,
                  traceVertexBufferMemory);
+
+    traceVertexCapacity = vertexCount;
 }
+
 
 void Renderer::updateTraceBuffer()
 {
@@ -1529,7 +1559,6 @@ void Renderer::updateTraceBuffer()
 
     VkDeviceSize bufferSize = sizeof(glm::vec3) * traceVertexCount;
 
-    // Create staging buffer
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,
@@ -1538,18 +1567,17 @@ void Renderer::updateTraceBuffer()
                  stagingBuffer,
                  stagingBufferMemory);
 
-    // Upload CPU data to staging
     void* dataPtr = nullptr;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &dataPtr);
-    memcpy(dataPtr, tracePoints.data(), static_cast<size_t>(bufferSize));
+    memcpy(dataPtr, traceVertices.data(), static_cast<size_t>(bufferSize));
     vkUnmapMemory(device, stagingBufferMemory);
 
-    // Copy to device local vertex buffer
     copyBuffer(stagingBuffer, traceVertexBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 }
+
 
 void Renderer::createTracePipeline()
 {
@@ -2020,15 +2048,27 @@ void Renderer::recordCommandBuffer(uint32_t imageIndex)
     {
         vkCmdBindPipeline(commandBuffers[imageIndex],
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          tracePipeline);
+                          tracePipeline); // your line pipeline
 
         VkBuffer vertexBuffers[] = { traceVertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
+        VkDeviceSize offsets[]   = { 0 };
         vkCmdBindVertexBuffers(commandBuffers[imageIndex], 0, 1, vertexBuffers, offsets);
 
-        vkCmdDraw(commandBuffers[imageIndex], traceVertexCount, 1, 0, 0);
-    }
+        for (size_t i = 0; i < traceStarts.size(); ++i)
+        {
+            uint32_t firstVertex = traceStarts[i];
+            uint32_t vertexCount = traceCounts[i];
 
+            if (vertexCount >= 2)
+            {
+                vkCmdDraw(commandBuffers[imageIndex],
+                          vertexCount,  // how many vertices
+                          1,            // instance count
+                          firstVertex,  // firstVertex
+                          0);           // firstInstance
+            }
+        }
+    }
     vkCmdEndRenderPass(commandBuffers[imageIndex]);
 
     if (vkEndCommandBuffer(commandBuffers[imageIndex]) != VK_SUCCESS)

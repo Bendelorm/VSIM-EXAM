@@ -46,6 +46,11 @@ struct Physics : Component
     float radius{0.5f};            // ball radius for ground contact
     int currentTriIndex{-1};
     glm::quat orientation{1.0f, 0.0f, 0.0f, 0.0f};   // rotation state for the ball
+
+    bool active = false;     // starts false, becomes true when spawned
+    float spawnDelay = 0.0f; // time offset for this ball
+
+    std::vector<glm::vec3> traceControlPoints;
 };
 
 struct Mesh : Component

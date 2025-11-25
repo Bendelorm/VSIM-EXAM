@@ -58,7 +58,10 @@ public:
     TerrainHit findTriangleUnderBallWithHint(const EntityRenderData& terrain,
                                              const glm::vec3& ballPos,
                                              int hintTriIndex);
-    void setTraceCurve(const std::vector<glm::vec3>& points);
+
+
+
+    void setAllTraceCurves(const std::vector<std::vector<glm::vec3>>& curves);
 
 protected:
     //Qt event handlers - called when requestUpdate(); is called
@@ -67,9 +70,15 @@ protected:
     bool event(QEvent* event) override;
 
 private:
-    // CPU-side trace data
-    std::vector<glm::vec3> tracePoints;
+    // CPU-side data for all B-spline curves
+    std::vector<std::vector<glm::vec3>> traceCurves; // one curve per ball
+    std::vector<uint32_t> traceStarts;
+    std::vector<uint32_t> traceCounts; // vertex count per curve
+
+    std::vector<glm::vec3> traceVertices;
     uint32_t traceVertexCount = 0;
+    size_t   traceVertexCapacity = 0;    // for buffer resize logic
+
 
     // GPU-side trace buffer
     VkBuffer traceVertexBuffer = VK_NULL_HANDLE;

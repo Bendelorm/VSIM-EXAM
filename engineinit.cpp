@@ -117,15 +117,20 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     // gea::Texture texture1;
     // texture1.path = "../../Assets/Textures/viking_room.png";
 
+    //connect components to mesh
+    //registry.addComponent(RoomOne.mEntityID, transform1);
+    //registry.addComponent(RoomOne.mEntityID, mesh1);
+    //registry.addComponent(RoomOne.mEntityID, texture1);
 
     // OBSTACLE
     gea::Entity Obstacle = entityManager.createEntity();
     gea::Transform ObstacleTransform;
-    ObstacleTransform.mPosition = glm::vec3(-2.0f, -7.0f, 34.0f);  // adjust as needed
-    ObstacleTransform.mRotation = glm::vec3(0.0f, -23.0f, 0.0f);
+    ObstacleTransform.mPosition = glm::vec3(-9.0f, -7.0f, 26.0f);  // adjust as needed
+    ObstacleTransform.mRotation = glm::vec3(0.0f, 0.0f, 0.0f);
     ObstacleTransform.mScale    = glm::vec3(4.0f, 4.0f, 4.0f);  // cube size
     ObstacleTransform.name      = "Obstacle";
     ObstacleTransform.isObstacle = true;
+
 
     // assumes you have a cube model
     gea::Mesh ObstacleMesh;
@@ -135,20 +140,67 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     ObstacleTex.path = "../../Assets/Textures/viking_room.png";
 
 
-    gea::Entity Ball = entityManager.createEntity();
-    gea::Transform BallTransform;
-    BallTransform.mPosition = glm::vec3(-12,2,-17);
-    BallTransform.name = "Ball";
-    gea::Mesh BallMesh;
-    BallMesh.path = "../../Assets/Models/Sphere.obj";
-    gea::Texture BallTexture;
-    BallTexture.path = "../../Assets/Textures/texture.jpg";
+    registry.addComponent(Obstacle.mEntityID, ObstacleTransform);
+    registry.addComponent(Obstacle.mEntityID, ObstacleMesh);
+    registry.addComponent(Obstacle.mEntityID, ObstacleTex);
 
-    gea::Physics ballPhysics;
-    ballPhysics.velocity = glm::vec3(0.0f);
-    ballPhysics.acceleration = glm::vec3(0.0f);
-    ballPhysics.mass = 20.0f;
-    ballPhysics.radius = 0.2f; // adjust to mesh
+    //gea::Entity Ball = entityManager.createEntity();
+    //gea::Transform BallTransform;
+    //BallTransform.mPosition = glm::vec3(-12,2,-17);
+    //BallTransform.name = "Ball";
+    //gea::Mesh BallMesh;
+    //BallMesh.path = "../../Assets/Models/Sphere.obj";
+    //gea::Texture BallTexture;
+    //BallTexture.path = "../../Assets/Textures/texture.jpg";
+    //
+    //gea::Physics ballPhysics;
+    //ballPhysics.velocity = glm::vec3(0.0f);
+    //ballPhysics.acceleration = glm::vec3(0.0f);
+    //ballPhysics.mass = 20.0f;
+    //ballPhysics.radius = 0.2f; // adjust to mesh
+    //
+    //registry.addComponent(Ball.mEntityID, BallTransform);
+    //registry.addComponent(Ball.mEntityID, BallMesh);
+    //registry.addComponent(Ball.mEntityID, BallTexture);
+    //registry.addComponent(Ball.mEntityID, ballPhysics);
+    //gea::TransformManager::setScale(Ball.mEntityID, glm::vec3(0.2, 0.2, 0.2));
+
+    // FLUID-LIKE: many balls
+    const int   numBalls      = 1000; // how many balls
+    const float spawnInterval = 0.3f; // time between launches (seconds)
+    const glm::vec3 spawnPos  = glm::vec3(-12,2,-17); // same origin for all
+    for (int i = 0; i < numBalls; ++i)
+    {
+        gea::Entity Ball = entityManager.createEntity();
+
+        gea::Transform BallTransform;
+        BallTransform.mPosition = spawnPos;
+        BallTransform.name = "Ball_" + std::to_string(i);
+        BallTransform.mScale = glm::vec3(0.2, 0.2, 0.2);
+
+        gea::Mesh BallMesh;
+        BallMesh.path = "../../Assets/Models/Sphere.obj";
+
+        gea::Texture BallTexture;
+        BallTexture.path = "../../Assets/Textures/texture.jpg";
+
+        gea::Physics ballPhysics;
+        ballPhysics.velocity      = glm::vec3(0.0f);
+        ballPhysics.acceleration  = glm::vec3(0.0f);
+        ballPhysics.mass          = 100.0f;
+        ballPhysics.radius        = 0.2f;
+        ballPhysics.currentTriIndex = -1;
+        ballPhysics.orientation   = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+        ballPhysics.active     = false;
+        ballPhysics.spawnDelay = i * spawnInterval;
+
+        registry.addComponent(Ball.mEntityID, BallTransform);
+        registry.addComponent(Ball.mEntityID, BallMesh);
+        registry.addComponent(Ball.mEntityID, BallTexture);
+        registry.addComponent(Ball.mEntityID, ballPhysics);
+    }
+
 
     //CREATING TERRAIN
     gea::Entity Terrain = entityManager.createEntity();
@@ -161,33 +213,16 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     gea::Texture TerrainTexture;
     TerrainTexture.path = "../../Assets/Textures/texture.jpg";
 
-
-    //connect components to mesh
-    //registry.addComponent(RoomOne.mEntityID, transform1);
-    //registry.addComponent(RoomOne.mEntityID, mesh1);
-    //registry.addComponent(RoomOne.mEntityID, texture1);
-
-    registry.addComponent(Obstacle.mEntityID, ObstacleTransform);
-    registry.addComponent(Obstacle.mEntityID, ObstacleMesh);
-    registry.addComponent(Obstacle.mEntityID, ObstacleTex);
-
-    registry.addComponent(Ball.mEntityID, BallTransform);
-    registry.addComponent(Ball.mEntityID, BallMesh);
-    registry.addComponent(Ball.mEntityID, BallTexture);
-    registry.addComponent(Ball.mEntityID, ballPhysics);
-
     registry.addComponent(Terrain.mEntityID, TerrainTransform);
     registry.addComponent(Terrain.mEntityID, TerrainMesh);
     registry.addComponent(Terrain.mEntityID, TerrainTexture);
 
-    gea::TransformManager::setScale(Ball.mEntityID, glm::vec3(0.2, 0.2, 0.2));
+
+
 
     gea::TransformManager::setRotation(Terrain.mEntityID, glm::vec3(-90, 0, 0));
     gea::TransformManager::setPosition(Terrain.mEntityID, glm::vec3(0, -2, 0));
     gea::TransformManager::setScale(Terrain.mEntityID, glm::vec3(0.1, 0.1, 0.1));
-
-
-
 
     // this has to happen last
     RenderSystem->init(renderSurface);

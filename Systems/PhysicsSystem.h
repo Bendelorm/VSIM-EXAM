@@ -30,6 +30,7 @@ private:
         float t);
 
     static bool s_enabled;
+    static float s_simTime;
 
     //trace state
     static float s_traceTimer;

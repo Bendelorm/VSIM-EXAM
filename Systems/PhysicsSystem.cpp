@@ -5,10 +5,14 @@
 #include <glm/gtc/quaternion.hpp>
 
 bool gea::PhysicsSystem::s_enabled = false;
+float gea::PhysicsSystem::s_simTime = 0.0f;
+glm::vec3 spawnPos = glm::vec3(-12,2,-17); // match EngineInit spawnPos
+
 // trace sampling state
 float gea::PhysicsSystem::s_traceTimer = 0.0f;
 float gea::PhysicsSystem::s_traceSampleInterval = 0.1f; //every 0.1s
 std::vector<glm::vec3> gea::PhysicsSystem::s_traceControlPoints;
+
 
 namespace gea
 {
@@ -107,7 +111,7 @@ void PhysicsSystem::rebuildTraceCurve(Renderer* renderer)
     }
 
     // Tell renderer about the updated trace curve
-    renderer->setTraceCurve(curve);
+    renderer->setAllTraceCurves({ curve });
 }
 
 void PhysicsSystem::update(float dt, Renderer* renderer)
@@ -115,6 +119,8 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
     if (!s_enabled) return;
     if (!renderer) return;
 
+
+    s_simTime += dt;  //simulation time
     s_traceTimer += dt;
 
     EntityRenderData* terrainEntity = renderer->getFirstTerrainEntity();
@@ -154,6 +160,17 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
 
         gea::Transform& transform = trIt->second;
         glm::vec3& pos = transform.mPosition;
+
+        if (!phys.active)
+        {
+            // not yet time to spawn this ball
+            if (s_simTime < phys.spawnDelay)
+                continue;
+
+            // just spawned now → mark active and reset position
+            phys.active = true;
+            pos = spawnPos; // same origin as in EngineInit (keep a const somewhere)
+        }
 
         // 1) Find which triangle the ball is on (Algorithm 9.6, step 1)
         TerrainHit hit = renderer->findTriangleUnderBallWithHint(
@@ -330,18 +347,59 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
         }
         if (s_traceTimer >= s_traceSampleInterval)
         {
-            // Put the trace on the ball position
             glm::vec3 tracePos = pos;
 
-            addTraceSample(tracePos);
+            phys.traceControlPoints.push_back(tracePos);
 
-            // Rebuild B-spline curve and send to renderer
-            rebuildTraceCurve(renderer);
-
-            // Reset timer
-            s_traceTimer = 0.0f;
+            //Limit trace length? only if lag
+            const size_t MAX_TRACE_POINTS = 2000;
+            if (phys.traceControlPoints.size() > MAX_TRACE_POINTS)
+            {
+                phys.traceControlPoints.erase(phys.traceControlPoints.begin());
+            }
         }
-    }
-}
 
+    }
+    if (s_traceTimer >= s_traceSampleInterval)
+    {
+        s_traceTimer = 0.0f;
+    }
+    std::vector<std::vector<glm::vec3>> allCurves;
+    allCurves.reserve(EngineInit::registry.Physics.size());
+
+    const int SAMPLES_PER_SEGMENT = 8;  // tweak smoothness
+
+    for (auto& [entityID, phys] : EngineInit::registry.Physics)
+    {
+        const auto& controlPoint = phys.traceControlPoints;
+        std::vector<glm::vec3> curve;
+
+        if (controlPoint.size() < 4)
+        {
+            // Not enough control points, just use polyline
+            curve = controlPoint;
+        }
+        else
+        {
+            // For N control points, there are (N - 3) segments
+            for (size_t i = 0; i + 3 < controlPoint.size(); ++i)
+            {
+                const glm::vec3& P0 = controlPoint[i + 0];
+                const glm::vec3& P1 = controlPoint[i + 1];
+                const glm::vec3& P2 = controlPoint[i + 2];
+                const glm::vec3& P3 = controlPoint[i + 3];
+
+                for (int s = 0; s <= SAMPLES_PER_SEGMENT; ++s)
+                {
+                    float t = static_cast<float>(s) /
+                              static_cast<float>(SAMPLES_PER_SEGMENT);
+                    curve.push_back(evalCubicUniformBSplineSegment(P0,P1,P2,P3,t));
+                }
+            }
+        }
+
+        allCurves.push_back(std::move(curve));
+    }
+    renderer->setAllTraceCurves(allCurves);
+}
 } // namespace gea

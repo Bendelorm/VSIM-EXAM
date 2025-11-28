@@ -117,6 +117,8 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     mesh3.path = "../../las/lasdatafull2_downsampled.obj";
     gea::Texture texture3;
     texture3.path = "../../Assets/Textures/texture.jpg";
+    transform3.mRotation = glm::vec3(-90, 0, 0);
+    transform3.mScale = glm::vec3(0.1, 0.1, 0.1);
 
 
     //connect components to mesh
@@ -131,6 +133,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     registry.addComponent(PointCloud.mEntityID, transform3);
     registry.addComponent(PointCloud.mEntityID, mesh3);
     registry.addComponent(PointCloud.mEntityID, texture3);
+
 
     //TxtToObj::convertTxtToObj("../../las/lasdata2_downsampled.txt", "../../las/lasdatafull2_downsampled.obj" );
 

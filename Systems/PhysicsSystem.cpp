@@ -6,7 +6,7 @@
 
 bool gea::PhysicsSystem::s_enabled = false;
 float gea::PhysicsSystem::s_simTime = 0.0f;
-glm::vec3 spawnPos = glm::vec3(-12,2,-17); // match EngineInit spawnPos
+
 
 // trace sampling state
 float gea::PhysicsSystem::s_traceTimer = 0.0f;
@@ -16,9 +16,10 @@ std::vector<glm::vec3> gea::PhysicsSystem::s_traceControlPoints;
 
 namespace gea
 {
+//See if entity is inside friction zone
 static bool isInsideFrictionZone(const glm::vec3& p)
 {
-    //tweak these to match the area I want
+    // Friction zone boundaries (world coordinates)
     const float minX =  -10.0f;
     const float maxX =  40.0f;
     const float minZ =  5.0f;
@@ -44,7 +45,7 @@ void PhysicsSystem::setEnabled(bool enabled)
         clearTrace();
     }
 }
-
+// Resets physics for all entities with physics component
 void PhysicsSystem::resetAllPhysics()
 {
     for (auto& [entityID, phys] : EngineInit::registry.Physics)
@@ -55,6 +56,9 @@ void PhysicsSystem::resetAllPhysics()
         phys.orientation     = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
     }
 }
+
+// Evaluates cubic B-spline
+// Used for interpolation of ball trace
 glm::vec3 PhysicsSystem::evalCubicUniformBSplineSegment(
     const glm::vec3& P0,
     const glm::vec3& P1,
@@ -91,8 +95,8 @@ void PhysicsSystem::rebuildTraceCurve(Renderer* renderer)
     }
     else
     {
-        // For n control points, we get (n - 3) segments
-        const int samplesPerSegment = 8; // tweak for smoothness
+        // For n control points, we get (n - 3) segments (cubic)
+        const int samplesPerSegment = 8; // B-spline curve sampling resolution
 
         for (size_t i = 0; i + 3 < ctrl.size(); ++i)
         {
@@ -113,7 +117,6 @@ void PhysicsSystem::rebuildTraceCurve(Renderer* renderer)
     // Tell renderer about the updated trace curve
     renderer->setAllTraceCurves({ curve });
 }
-
 void PhysicsSystem::update(float dt, Renderer* renderer)
 {
     if (!s_enabled) return;
@@ -156,7 +159,9 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
     {
         auto trIt = EngineInit::registry.Transforms.find(entityID);
         if (trIt == EngineInit::registry.Transforms.end())
+        {
             continue;
+        }
 
         gea::Transform& transform = trIt->second;
         glm::vec3& pos = transform.mPosition;
@@ -165,16 +170,17 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
         {
             // not yet time to spawn this ball
             if (s_simTime < phys.spawnDelay)
+            {
                 continue;
+            }
 
-            // just spawned now → mark active and reset position
+            // just spawned now, mark active and reset position
             phys.active = true;
-            pos = spawnPos; // same origin as in EngineInit (keep a const somewhere)
+            pos = transform.mPosition;
         }
 
-        // 1) Find which triangle the ball is on (Algorithm 9.6, step 1)
-        TerrainHit hit = renderer->findTriangleUnderBallWithHint(
-            terrain, pos, phys.currentTriIndex);
+        // Find which triangle the ball is on (Algorithm 9.6, step 1)
+        TerrainHit hit = renderer->findTriangleUnderBallWithHint(terrain, pos, phys.currentTriIndex);
 
         glm::vec3 a(0.0f);      // acceleration
         bool onSurface = false; // "in contact" this frame
@@ -197,7 +203,9 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                 pos.y = surfaceY;
                 float vDotN = glm::dot(phys.velocity, n);
                 if (vDotN < 0.0f)
-                    phys.velocity -= vDotN * n;   // remove only inward component
+                {
+                    phys.velocity -= vDotN * n; // remove only inward component
+                }
                 onSurface = true;
             }
             else if (touching && glm::dot(phys.velocity, n) <= 0.0f)
@@ -212,7 +220,7 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                 float gDotN = glm::dot(gvec, n);
                 a = gvec - gDotN * n;   // base slope acceleration
 
-                // BASE FRICTION EVERYWHERE ON SURFACE
+                //friction
                 glm::vec3 vTan = phys.velocity - glm::dot(phys.velocity, n) * n;
                 float speed = glm::length(vTan);
 
@@ -221,13 +229,13 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                     glm::vec3 dir = vTan / speed;  // unit tangent
 
                     // baseline friction coefficient (applied everywhere)
-                    const float muBase  = 0.1f;   // tweak as you like
+                    const float muBase  = 0.1; // Base coefficient of friction
                     float mu = muBase;
 
-                    // EXTRA FRICTION IN SPECIAL ZONE
+                    //Extra friction in red zone
                     if (isInsideFrictionZone(pos))
                     {
-                        const float muExtra = 0.2f; // additional friction in red area
+                        const float muExtra = 0.2f; // Extra coefficient of friction
                         mu += muExtra;
                     }
                     glm::vec3 aFriction = -mu * g * dir;
@@ -300,11 +308,17 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
                     glm::vec3 absLocal = glm::abs(local);
 
                     if (absLocal.x > absLocal.y && absLocal.x > absLocal.z)
+                    {
                         n = glm::vec3((local.x > 0.0f) ? 1.0f : -1.0f, 0.0f, 0.0f);
+                    }
                     else if (absLocal.y > absLocal.z)
+                    {
                         n = glm::vec3(0.0f, (local.y > 0.0f) ? 1.0f : -1.0f, 0.0f);
+                    }
                     else
+                    {
                         n = glm::vec3(0.0f, 0.0f, (local.z > 0.0f) ? 1.0f : -1.0f);
+                    }
                 }
 
                 float penetration = r - (dist > 0.001f ? dist : 0.0f);
@@ -319,7 +333,7 @@ void PhysicsSystem::update(float dt, Renderer* renderer)
             }
         }
 
-        //Rolling rotation: only while in contact (Not working properly)
+        // Rolling rotation implementation (doesn't match physics properly)
         if (hit.hit && onSurface)
         {
             glm::vec3 n = glm::normalize(hit.normal);

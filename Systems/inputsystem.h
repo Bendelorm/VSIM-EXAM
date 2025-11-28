@@ -66,7 +66,7 @@ public:
 private:
     std::unordered_map<Action, std::vector<InputBinding>> bindings;
 
-    //TODO: fix this shitty way of doing things
+    //TODO: fix this way of doing things
     float mYaw{0.0f}, mPitch{0.0f}, mSpeed{100.0f};
     float oldMouseX{-1.0f}, oldMouseY{-1.0f};
 

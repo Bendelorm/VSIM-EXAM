@@ -21,5 +21,5 @@ void main()
     gl_Position = ubo.proj * ubo.view * worldPos;
 
     // Constant color for the trace (bright red)
-    outColor = vec3(1.0, 0.0, 0.0);
+    outColor = vec3(0.0, 0.0, 1.0);
 }

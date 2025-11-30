@@ -135,7 +135,7 @@ void EngineInit::PostInitalizeEngineInitalization(Renderer* renderSurface)
     //Physics ball(s). Can choose amount and spawn interval!
 
     const int   numBalls      = 100; // how many balls
-    const float spawnInterval = 0.03f; // time between spawn (seconds)
+    const float spawnInterval = 0.3f; // time between spawn (seconds)
     glm::vec3 spawnPos  = glm::vec3(-12,2,-17); // same origin for all (not really used)
     for (int i = 0; i < numBalls; ++i)
     {
